@@ -1,5 +1,5 @@
-use futures::Future;
 use std::{
+    future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -13,25 +13,6 @@ pub struct Elapsed;
 
 #[derive(Debug)]
 pub struct Closed;
-
-pin_project_lite::pin_project! {
-    #[derive(Debug)]
-    pub struct AdjustableTimeout<T> {
-        #[pin]
-        future: T,
-        #[pin]
-        delay: Sleep,
-
-        tx: mpsc::UnboundedSender<Command>,
-        rx: mpsc::UnboundedReceiver<Command>,
-    }
-}
-
-enum Command {
-    Increment(Duration),
-    Decrement(Duration),
-    Update(Instant),
-}
 
 pub struct Handle {
     tx: mpsc::UnboundedSender<Command>,
@@ -55,25 +36,28 @@ impl Handle {
     }
 }
 
-impl<T> AdjustableTimeout<T> {
-    pub fn handle(&self) -> Handle {
-        Handle::new(self.tx.clone())
+enum Command {
+    Increment(Duration),
+    Decrement(Duration),
+    Update(Instant),
+}
+
+pin_project_lite::pin_project! {
+    #[derive(Debug)]
+    pub struct AdjustableTimeout<T> {
+        #[pin]
+        future: T,
+        #[pin]
+        delay: Sleep,
+
+        tx: mpsc::UnboundedSender<Command>,
+        rx: mpsc::UnboundedReceiver<Command>,
     }
 }
 
-pub fn adjustable_timeout<T>(duration: Duration, future: T) -> AdjustableTimeout<T>
-where
-    T: Future,
-{
-    let (tx, rx) = mpsc::unbounded_channel();
-    let deadline = Instant::now() + duration;
-    let delay = sleep_until(deadline);
-
-    AdjustableTimeout {
-        future,
-        delay,
-        tx,
-        rx,
+impl<T> AdjustableTimeout<T> {
+    pub fn handle(&self) -> Handle {
+        Handle::new(self.tx.clone())
     }
 }
 
@@ -105,5 +89,21 @@ where
         }
 
         Poll::Pending
+    }
+}
+
+pub fn adjustable_timeout<T>(duration: Duration, future: T) -> AdjustableTimeout<T>
+where
+    T: Future,
+{
+    let (tx, rx) = mpsc::unbounded_channel();
+    let deadline = Instant::now() + duration;
+    let delay = sleep_until(deadline);
+
+    AdjustableTimeout {
+        future,
+        delay,
+        tx,
+        rx,
     }
 }
