@@ -1,0 +1,17 @@
+[package]
+name = "tokio-adjustable-timeout"
+version = "0.1.0"
+authors = ["Petr Beneš <w.benny@outlook.com>"]
+license = "MIT"
+repository = "https://github.com/wbenny/tokio-adjustable-timeout"
+description = "adjustable timeout"
+keywords = ["adjustable", "timeout", "tokio", "async"]
+edition = "2021"
+
+[dependencies]
+futures = "0.3"
+pin-project-lite = "0.2"
+tokio = { version = "1", features = ["sync", "time"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
